@@ -23,12 +23,14 @@ kubectl -n rp-app-graph-backend create secret generic rp-app-graph-backend-confi
 
 ## Image
 
-The deployment pulls `ghcr.io/shields-farm/rp-app-graph-backend:latest`.
-Build & push from the repo root:
+The deployment pulls `ghcr.io/shields-farm/rp-app-graph-backend:latest`,
+built and pushed by this repo's CI on every merge to main (no one builds
+images on their machine).
 
-```bash
-docker build -t ghcr.io/shields-farm/rp-app-graph-backend:latest .
-docker push ghcr.io/shields-farm/rp-app-graph-backend:latest
-```
+**One-time step:** the ghcr package is private by default after first publish.
+Flip it once at GitHub → shields-farm → Packages → rp-app-graph-backend →
+Package settings → Change visibility → public. After that the cluster pulls
+anonymously and there is no pull secret to manage.
 
-Replace `:latest` with a digest-pinned tag for production once CI lands.
+The ArgoCD Application lives in `shields-farm/argocd-app` at
+`prod/rp-app-graph-backend.yaml` (app-of-apps pattern).
