@@ -1,3 +1,13 @@
+# Ingress policy for the rp-app-graph-backend namespace.
+#
+# Deliberately close to the whiteboard precedent (shields-farm/kubernetes):
+# ingress allowed cluster-wide on the service port. The tailscale ingress
+# proxies connect to the backend Service as in-cluster traffic through
+# kube-proxy, so a namespaceSelector on the tailscale namespace is not the
+# right gate. The tailnet ingress is the real boundary.
+#
+# Egress IS restricted (upstream is api.rpstrength.com + cluster DNS only) —
+# cheap to express and worth having for a pass-through-auth gateway.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -9,13 +19,9 @@ spec:
       app: rp-app-graph-backend
   policyTypes: [Ingress, Egress]
   ingress:
-    - from:
-        # Tailnet ingress via the tailscale-operator proxy pod
-        - namespaceSelector:
-            matchLabels:
-              kubernetes.io/metadata.name: tailscale
-      ports:
-        - port: http
+    - ports:
+        - protocol: TCP
+          port: 8080
   egress:
     # api.rpstrength.com and training.rpstrength.com (HTTPS)
     - to:
