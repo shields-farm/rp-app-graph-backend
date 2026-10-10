@@ -22,7 +22,7 @@ import (
 )
 
 const (
-	BaseURL   = "https://api.rpstrength.com"
+	BaseURL    = "https://api.rpstrength.com"
 	AppBaseURL = "https://training.rpstrength.com/api"
 	// AppVersion is pinned the way rp_api.py pins it; RP accepts anything
 	// recent, but pinning avoids surprises if they gate.
@@ -102,11 +102,11 @@ func (c *Client) do(ctx context.Context, method, path string, body any, result a
 
 	var bodyReader io.Reader
 	headers := map[string]string{
-		"Authorization": "Bearer " + c.token,
-		"Accept":        "application/json",
+		"Authorization":  "Bearer " + c.token,
+		"Accept":         "application/json",
 		"Accept-Version": AppVersion,
-		"X-App":         "training",
-		"X-App-Version": AppVersion,
+		"X-App":          "training",
+		"X-App-Version":  AppVersion,
 	}
 	if body != nil {
 		raw, err := json.Marshal(body)

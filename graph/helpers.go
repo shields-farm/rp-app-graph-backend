@@ -218,13 +218,13 @@ func decodeDay(raw json.RawMessage) (*model.Day, error) {
 
 func decodeDayExercise(raw json.RawMessage) (*model.DayExercise, error) {
 	var dto struct {
-		ID           int               `json:"id"`
-		Position     int               `json:"position"`
-		Exercise     *exerciseDTO      `json:"exercise"`
-		ExerciseID   *int              `json:"exerciseId"`
-		MuscleGroupID *int              `json:"muscleGroupId"`
-		MuscleGroupName *string         `json:"muscleGroupName"`
-		Sets         []json.RawMessage `json:"sets"`
+		ID              int               `json:"id"`
+		Position        int               `json:"position"`
+		Exercise        *exerciseDTO      `json:"exercise"`
+		ExerciseID      *int              `json:"exerciseId"`
+		MuscleGroupID   *int              `json:"muscleGroupId"`
+		MuscleGroupName *string           `json:"muscleGroupName"`
+		Sets            []json.RawMessage `json:"sets"`
 	}
 	if err := decode(raw, &dto); err != nil {
 		return nil, err

@@ -5,18 +5,37 @@ repos:
       - id: trailing-whitespace
       - id: end-of-file-fixer
       - id: check-yaml
+        exclude: ^k8s/tailnet-ingress.yaml$  # multi-doc tailscale proxy + service
       - id: check-added-large-files
       - id: mixed-line-ending
         args: [--fix=lf]
       - id: check-merge-conflict
 
-  - repo: https://github.com/dnephin/pre-commit-golang
-    rev: v0.5.1
+  # go-vet needs the module context; the generic pre-commit-golang repo runs
+  # from the wrong cwd. Pin our own local hooks so they always run from repo
+  # root where go.mod lives.
+  - repo: local
     hooks:
       - id: go-fmt
-      - id: go-imports
+        name: go fmt
+        entry: gofmt -s -l .
+        language: system
+        pass_filenames: false
+        files: \.go$
+
       - id: go-vet
+        name: go vet
+        entry: go vet ./...
+        language: system
+        pass_filenames: false
+        files: \.go$
+
       - id: go-mod-tidy
+        name: go mod tidy
+        entry: go mod tidy
+        language: system
+        pass_filenames: false
+        files: (^go\.(mod|sum)$)|\.go$
 
   # Fail on common secret patterns before they reach the public repo.
   - repo: https://github.com/gitleaks/gitleaks

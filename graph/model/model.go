@@ -64,9 +64,9 @@ func (p PriorityTier) IsValid() bool {
 type SetType string
 
 const (
-	SetTypeRegular      SetType = "regular"
-	SetTypeMyorep       SetType = "myorep"
-	SetTypeMyorepMatch  SetType = "myorep-match" // API uses hyphen; schema used underscore
+	SetTypeRegular     SetType = "regular"
+	SetTypeMyorep      SetType = "myorep"
+	SetTypeMyorepMatch SetType = "myorep-match" // API uses hyphen; schema used underscore
 )
 
 // GraphQL enum value → wire value. GraphQL enum names cannot contain hyphens.
