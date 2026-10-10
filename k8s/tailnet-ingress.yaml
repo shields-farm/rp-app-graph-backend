@@ -1,0 +1,25 @@
+# Expose the service on the tailnet via the tailscale-operator. The proxy pod
+# sits in the tailscale namespace and forwards to this Service.
+apiVersion: tailscale.com/v1alpha1
+kind: ProxyGroup
+metadata:
+  name: rp-app-graph-backend
+spec: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rp-app-graph-backend-tailnet
+  namespace: rp-app-graph-backend
+  annotations:
+    tailscale.com/expose: "true"
+    tailscale.com/hostname: "rp-graph"
+spec:
+  type: LoadBalancer
+  loadBalancerClass: tailscale
+  selector:
+    app: rp-app-graph-backend
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

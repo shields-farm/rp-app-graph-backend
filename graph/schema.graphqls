@@ -1,0 +1,212 @@
+directive @goModel(model: String, models: [String!]) on OBJECT | INPUT_OBJECT | SCALAR | ENUM | INTERFACE | UNION
+
+scalar Time
+scalar JSON
+
+enum PriorityTier {
+  maintain
+  grow
+  emphasize
+}
+
+enum SetType {
+  regular
+  myorep
+  myorep_match
+}
+
+type MuscleGroup {
+  id: Int!
+  name: String!
+}
+
+type MuscleGroupPriority {
+  id: String
+  muscleGroupId: Int!
+  muscleGroupName: String!
+  tier: PriorityTier!
+}
+
+type MesocycleSummary {
+  id: Int!
+  key: String!
+  name: String!
+  status: String
+  createdAt: Time
+  finishedAt: Time
+  weekCount: Int
+}
+
+type Mesocycle {
+  id: Int!
+  key: String!
+  name: String!
+  status: String
+  createdAt: Time
+  finishedAt: Time
+  microRirs: String
+  priorities: [MuscleGroupPriority!]!
+  weeks: [Week!]!
+  raw: JSON
+}
+
+type Week {
+  id: Int!
+  position: Int!
+  days: [Day!]!
+  raw: JSON
+}
+
+type Day {
+  id: Int!
+  label: String
+  bodyweight: Float
+  finishedAt: Time
+  exercises: [DayExercise!]!
+  raw: JSON
+}
+
+type DayExercise {
+  id: Int!
+  position: Int!
+  exerciseId: Int
+  exercise: Exercise
+  muscleGroupId: Int
+  muscleGroupName: String
+  sets: [Set!]!
+  raw: JSON
+}
+
+type Exercise {
+  id: Int!
+  name: String!
+  muscleGroupId: Int
+  muscleGroupName: String
+  raw: JSON
+}
+
+type Set {
+  id: Int!
+  position: Int!
+  setType: SetType
+  status: String
+  weight: Float
+  weightTarget: Float
+  weightTargetMin: Float
+  weightTargetMax: Float
+  reps: Int
+  repsTarget: String
+  rir: Int
+  bodyweight: Float
+  finishedAt: Time
+  raw: JSON
+}
+
+type Template {
+  key: String!
+  name: String
+  raw: JSON
+}
+
+type UserAttributes {
+  raw: JSON!
+}
+
+type Query {
+  """List all mesocycles, summary shape."""
+  mesocycles: [MesocycleSummary!]!
+
+  """Fetch the full mesocycle detail by key, or by name/number via `find`.
+  Exactly one of key/find must be provided. `find` is the same lookup rp_api.py
+  does: exact name match, then 'cycle N' prefix, then substring."""
+  mesocycle(key: String, find: String): Mesocycle!
+
+  """The active mesocycle (the one whose finishedAt is null)."""
+  activeMesocycle: Mesocycle
+
+  """Priorities for a given mesocycle key, keyed by muscle group."""
+  priorities(mesoKey: String!): [MuscleGroupPriority!]!
+
+  """Full exercise library."""
+  exercises: [Exercise!]!
+
+  """Lift history for one exercise."""
+  exerciseHistory(exerciseId: Int!): JSON!
+
+  """Saved mesocycle templates."""
+  templates: [Template!]!
+  template(key: String!): Template!
+
+  """User attributes from /training/user-attributes."""
+  userAttributes: UserAttributes!
+
+  """User exercise history from /training/user-exercise-history."""
+  userExerciseHistory: JSON!
+
+  """The /training/bootstrap payload."""
+  bootstrap: JSON!
+}
+
+input PriorityChange {
+  """Muscle group id, or name/alias the same way rp_api.mg_id accepts."""
+  muscleGroup: String!
+  tier: PriorityTier!
+}
+
+input SetUpdateInput {
+  """Any subset of RP's writable set fields. Unknown keys pass through."""
+  weight: Float
+  reps: Int
+  rir: Int
+  status: String
+  weightTarget: Float
+  repsTarget: String
+  setType: SetType
+  progressiveOverload: Boolean
+  extra: JSON
+}
+
+input DayExerciseInput {
+  exerciseId: Int!
+  muscleGroupId: Int!
+  position: Int
+}
+
+type Mutation {
+  """Replace muscle-group priorities on a mesocycle. Sends the FULL priority
+  map (delete-then-insert server side) with the changes applied — the partial
+  map would 500 on a unique-constraint. Mirrors rp_api.set_priorities."""
+  setPriorities(mesoKey: String!, changes: [PriorityChange!]!): [MuscleGroupPriority!]!
+
+  """Create a new mesocycle from a raw payload (must include name, days,
+  priorities — the shape the web app sends)."""
+  createMesocycle(payload: JSON!): Mesocycle!
+
+  """Update mesocycle metadata."""
+  updateMesocycle(key: String!, payload: JSON!): Mesocycle!
+  deleteMesocycle(key: String!): Boolean!
+
+  """Add / remove a week."""
+  addMicro(mesoKey: String!): Mesocycle!
+  removeMicro(mesoKey: String!): Boolean!
+
+  """Day-level edits."""
+  updateDay(dayId: Int!, payload: JSON!): Day!
+  updateDayBodyweight(dayId: Int!, bodyweight: Float!): Day!
+  updateDayLabel(dayId: Int!, label: String!): Day!
+  addDayNote(dayId: Int!, text: String!): JSON!
+
+  """Exercise-level edits within a day."""
+  addExerciseToDay(dayId: Int!, exercise: DayExerciseInput!): DayExercise!
+  updateDayExercise(dayId: Int!, dayExerciseId: Int!, payload: JSON!): DayExercise!
+  deleteDayExercise(dayId: Int!, dayExerciseId: Int!): Boolean!
+
+  """Set-level edits."""
+  updateSet(setId: Int!, changes: SetUpdateInput!): Set!
+  deleteSet(setId: Int!): Boolean!
+
+  """Template CRUD."""
+  createTemplate(payload: JSON!): Template!
+  updateTemplate(key: String!, payload: JSON!): Template!
+  deleteTemplate(key: String!): Boolean!
+}

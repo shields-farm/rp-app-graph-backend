@@ -1,0 +1,35 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: rp-app-graph-backend
+  namespace: rp-app-graph-backend
+spec:
+  podSelector:
+    matchLabels:
+      app: rp-app-graph-backend
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        # Tailnet ingress via the tailscale-operator proxy pod
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: tailscale
+      ports:
+        - port: http
+  egress:
+    # api.rpstrength.com and training.rpstrength.com (HTTPS)
+    - to:
+        - ipBlock: { cidr: 0.0.0.0/0 }
+      ports:
+        - port: 443
+          protocol: TCP
+    # cluster DNS
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP

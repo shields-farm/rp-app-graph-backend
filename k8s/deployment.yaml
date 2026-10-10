@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rp-app-graph-backend
+  namespace: rp-app-graph-backend
+  labels:
+    app: rp-app-graph-backend
+spec:
+  replicas: 1
+  # RollingUpdate is safe here: the service is stateless (the RP token
+  # lives with the caller, not the pod). No volume coordination needed.
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: rp-app-graph-backend
+  template:
+    metadata:
+      labels:
+        app: rp-app-graph-backend
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        # distroless/static:nonroot runs as 65532; that uid exists in the image.
+        runAsUser: 65532
+        runAsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: server
+          # Pinned by digest once CI builds a stable tag. Update via the
+          # kustomize overlay or `kubectl set image`.
+          image: ghcr.io/shields-farm/rp-app-graph-backend:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: PORT
+              value: "8080"
+            - name: PLAYGROUND
+              value: "false"
+            # RP_USER_ID sets the default write target. Callers can override
+            # per request with the X-RP-User-Id header. Unset = read-only.
+            - name: RP_USER_ID
+              valueFrom:
+                secretKeyRef:
+                  name: rp-app-graph-backend-config
+                  key: rp-user-id
+                  optional: true
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            httpGet: { path: /healthz, port: http }
+            initialDelaySeconds: 2
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            initialDelaySeconds: 5
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 25m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]

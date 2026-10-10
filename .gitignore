@@ -1,0 +1,17 @@
+# Binaries
+rp-app-graph-backend
+*.test
+*.out
+
+# Editor/OS cruft
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Local env overrides (never commit)
+.env
+.env.local
+
+# gqlgen cache and other ephemeral
+.cache/

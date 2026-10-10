@@ -1,0 +1,33 @@
+schema:
+  - graph/schema.graphqls
+
+exec:
+  filename: graph/generated.go
+  package: graph
+
+model:
+  filename: graph/model/models_gen.go
+  package: model
+
+resolver:
+  layout: follow-schema
+  dir: graph
+  package: graph
+  filename_template: "{name}.resolvers.go"
+
+autobind:
+  - github.com/shields-farm/rp-app-graph-backend/graph/model
+
+models:
+  Time:
+    model:
+      - github.com/99designs/gqlgen/graphql.Time
+  JSON:
+    model:
+      - github.com/shields-farm/rp-app-graph-backend/graph/model.JSON
+  SetType:
+    model:
+      - github.com/shields-farm/rp-app-graph-backend/graph/model.SetType
+  PriorityTier:
+    model:
+      - github.com/shields-farm/rp-app-graph-backend/graph/model.PriorityTier
