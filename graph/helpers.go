@@ -12,6 +12,7 @@ import (
 	"github.com/shields-farm/rp-app-graph-backend/graph/model"
 	"github.com/shields-farm/rp-app-graph-backend/internal/rp"
 	"github.com/shields-farm/rp-app-graph-backend/internal/server"
+	"github.com/vektah/gqlparser/v2/gqlerror"
 )
 
 // fetchExerciseLibrary grabs the exercise library once for the request, so a
@@ -43,6 +44,27 @@ func decodeMesocycleResolved(ctx context.Context, c *rp.Client, raw json.RawMess
 }
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
+// errToGraphQL keeps RP's status code attached as an extension so callers
+// can distinguish "your token is expired" (401) from "RP is down" (5xx).
+func errToGraphQL(err error) error {
+	if err == nil {
+		return nil
+	}
+	if ae, ok := err.(*rp.APIError); ok {
+		return &gqlerror.Error{
+			Message:    ae.Error(),
+			Extensions: map[string]any{"code": "RP_UPSTREAM", "status": ae.StatusCode},
+		}
+	}
+	return err
+}
+
+func strPtr(s string) *string {
+	if s == "" {
+		return nil
+	}
+	return &s
+}
 
 func (r *Resolver) client(ctx context.Context) (*rp.Client, error) {
 	return server.NewRPClient(ctx, r.DefaultUserID())

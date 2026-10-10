@@ -108,8 +108,10 @@ graph/             gqlgen schema, model, resolvers
 ## Hacking
 
 ```bash
-# regenerate the graph after editing graph/schema.graphqls
-go run github.com/99designs/gqlgen generate
+# regenerate the graph after editing graph/schema.graphqls — gqlgen merges
+# hand-written resolver bodies into schema.resolvers.go, so regen is a no-op
+# when the schema matches (CI enforces this)
+go tool gqlgen generate
 
 go vet ./...
 go test ./...

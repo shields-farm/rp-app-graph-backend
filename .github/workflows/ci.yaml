@@ -39,13 +39,13 @@ jobs:
           go-version: "1.26"
           cache: true
       - run: go tool gqlgen generate
-      - name: Generated code is in sync (ignore resolver stubs; we hand-write resolvers)
+      - name: Generated code is in sync
         run: |
           set -euo pipefail
-          # Regenerate brings back schema.resolvers.go (panic stubs we delete
-          # intentionally) — don't diff it, only the real generated artifacts.
-          if git status --short -- graph/generated.go graph/model/models_gen.go | grep .; then
-            echo "generated.go or models_gen.go drifted from schema — run 'go tool gqlgen generate' locally and commit"
+          # gqlgen merges hand-written resolver bodies in schema.resolvers.go,
+          # so regen must be a no-op across all three generated/merged files.
+          if git status --short -- graph/generated.go graph/model/models_gen.go graph/schema.resolvers.go | grep .; then
+            echo "gqlgen output drifted from schema — run 'go tool gqlgen generate' locally and commit"
             exit 1
           fi
 
