@@ -1,10 +1,20 @@
-# CI: build + test + lint. Image build/push happens on merge to main.
+# CI: build + test + lint on every PR. On merge to main, also build and push
+# the container image to ghcr.io — the cluster pulls from there, so this job
+# IS the artifact pipeline; nothing builds images on a developer machine.
+#
+# Security: no ${{ github.event.* }} fields are interpolated into run: or ref:
+# anywhere in this workflow. github.sha and github.actor are GitHub-generated,
+# not attacker-controlled.
 name: CI
 
 on:
   pull_request:
   push:
     branches: [main]
+
+permissions:
+  contents: read
+  packages: write
 
 jobs:
   test:
@@ -29,7 +39,15 @@ jobs:
           go-version: "1.26"
           cache: true
       - run: go run github.com/99designs/gqlgen generate
-      - run: git diff --exit-code -- graph/generated.go graph/model/models_gen.go
+      - name: Generated code is in sync (ignore resolver stubs; we hand-write resolvers)
+        run: |
+          set -euo pipefail
+          # Regenerate brings back schema.resolvers.go (panic stubs we delete
+          # intentionally) — don't diff it, only the real generated artifacts.
+          if git status --short -- graph/generated.go graph/model/models_gen.go | grep .; then
+            echo "generated.go or models_gen.go drifted from schema — run 'go run github.com/99designs/gqlgen generate' locally and commit"
+            exit 1
+          fi
 
   docker:
     runs-on: ubuntu-latest
@@ -42,5 +60,30 @@ jobs:
           context: .
           push: false
           tags: rp-app-graph-backend:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  publish:
+    # Push the image only from main, only after tests pass.
+    needs: [test, docker]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Login to ghcr
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/shields-farm/rp-app-graph-backend:latest
+            ghcr.io/shields-farm/rp-app-graph-backend:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
