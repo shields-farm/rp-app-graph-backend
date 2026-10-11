@@ -70,6 +70,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v3
       - name: Login to ghcr
         uses: docker/login-action@v3
@@ -85,5 +86,8 @@ jobs:
           tags: |
             ghcr.io/shields-farm/rp-app-graph-backend:latest
             ghcr.io/shields-farm/rp-app-graph-backend:${{ github.sha }}
+          # Both amd64 (x86 Macs, RPis, x86 servers) and arm64 (Apple Silicon,
+          # recent ARM). The cluster is mixed; publish both.
+          platforms: linux/amd64,linux/arm64
           cache-from: type=gha
           cache-to: type=gha,mode=max

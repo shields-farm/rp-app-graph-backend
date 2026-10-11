@@ -34,7 +34,7 @@ spec:
           # Pinned by digest once CI builds a stable tag. Update via the
           # kustomize overlay or `kubectl set image`.
           image: ghcr.io/shields-farm/rp-app-graph-backend:latest
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           env:
             - name: PORT
               value: "8080"
