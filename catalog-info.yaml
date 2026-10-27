@@ -1,0 +1,12 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: rp-app-graph-backend
+  description: GraphQL gateway over the RP Hypertrophy REST API.
+  annotations:
+    github.com/project-slug: shields-farm/rp-app-graph-backend
+spec:
+  type: service
+  lifecycle: production
+  owner: shields-farm
+  system: estate-platform
