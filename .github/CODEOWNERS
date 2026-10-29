@@ -1,0 +1,17 @@
+# CODEOWNERS
+#
+# Default owners for every path in this repository. A pull request that touches
+# any path below requires an approving review from at least one listed owner
+# before it can merge to the default branch.
+#
+# Enforcement lives in the repository ruleset "protect-default-branch":
+#   - 1 approving review required
+#   - the approval must come from a CODEOWNER
+#   - stale approvals are dismissed when new commits are pushed
+#   - the approval must come from someone other than the last pusher
+#   - all review conversations must be resolved
+#   - force pushes and branch deletion are blocked
+#
+# Reviews only count toward CODEOWNER review if the reviewer has write access.
+
+* @mrkshields @claireshields @samshields-oc
