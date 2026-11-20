@@ -66,6 +66,14 @@ func strPtr(s string) *string {
 	return &s
 }
 
+// boolOr reports the pointer value, or def when nil.
+func boolOr(v *bool, def bool) bool {
+	if v == nil {
+		return def
+	}
+	return *v
+}
+
 func (r *Resolver) client(ctx context.Context) (*rp.Client, error) {
 	return server.NewRPClient(ctx, r.DefaultUserID())
 }

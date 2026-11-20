@@ -106,18 +106,24 @@ type ComplexityRoot struct {
 		AddDayNote          func(childComplexity int, dayID int, text string) int
 		AddExerciseToDay    func(childComplexity int, dayID int, exercise model.DayExerciseInput) int
 		AddMicro            func(childComplexity int, mesoKey string) int
+		AddSet              func(childComplexity int, dayID int, dayExerciseID int, position int) int
+		CreateExercise      func(childComplexity int, payload json.RawMessage) int
 		CreateMesocycle     func(childComplexity int, payload json.RawMessage) int
 		CreateTemplate      func(childComplexity int, payload json.RawMessage) int
 		DeleteDayExercise   func(childComplexity int, dayID int, dayExerciseID int) int
+		DeleteDayExercises  func(childComplexity int, mesoKey string, dayExerciseIds []int) int
 		DeleteMesocycle     func(childComplexity int, key string) int
 		DeleteSet           func(childComplexity int, setID int) int
 		DeleteTemplate      func(childComplexity int, key string) int
 		RemoveMicro         func(childComplexity int, mesoKey string) int
+		ReorderDayExercises func(childComplexity int, dayID int, order []int, repeat *bool) int
+		ReplaceDayExercise  func(childComplexity int, dayID int, dayExerciseID int, newExerciseID int, repeat *bool) int
 		SetPriorities       func(childComplexity int, mesoKey string, changes []*model.PriorityChange) int
 		UpdateDay           func(childComplexity int, dayID int, payload json.RawMessage) int
 		UpdateDayBodyweight func(childComplexity int, dayID int, bodyweight float64) int
 		UpdateDayExercise   func(childComplexity int, dayID int, dayExerciseID int, payload json.RawMessage) int
 		UpdateDayLabel      func(childComplexity int, dayID int, label string) int
+		UpdateExercise      func(childComplexity int, id int, payload json.RawMessage) int
 		UpdateMesocycle     func(childComplexity int, key string, payload json.RawMessage) int
 		UpdateSet           func(childComplexity int, setID int, changes model.SetUpdateInput) int
 		UpdateTemplate      func(childComplexity int, key string, payload json.RawMessage) int
@@ -190,8 +196,14 @@ type MutationResolver interface {
 	AddExerciseToDay(ctx context.Context, dayID int, exercise model.DayExerciseInput) (*model.DayExercise, error)
 	UpdateDayExercise(ctx context.Context, dayID int, dayExerciseID int, payload json.RawMessage) (*model.DayExercise, error)
 	DeleteDayExercise(ctx context.Context, dayID int, dayExerciseID int) (bool, error)
+	DeleteDayExercises(ctx context.Context, mesoKey string, dayExerciseIds []int) (bool, error)
+	ReplaceDayExercise(ctx context.Context, dayID int, dayExerciseID int, newExerciseID int, repeat *bool) (json.RawMessage, error)
+	ReorderDayExercises(ctx context.Context, dayID int, order []int, repeat *bool) (json.RawMessage, error)
+	CreateExercise(ctx context.Context, payload json.RawMessage) (json.RawMessage, error)
+	UpdateExercise(ctx context.Context, id int, payload json.RawMessage) (json.RawMessage, error)
 	UpdateSet(ctx context.Context, setID int, changes model.SetUpdateInput) (*model.Set, error)
 	DeleteSet(ctx context.Context, setID int) (bool, error)
+	AddSet(ctx context.Context, dayID int, dayExerciseID int, position int) (json.RawMessage, error)
 	CreateTemplate(ctx context.Context, payload json.RawMessage) (*model.Template, error)
 	UpdateTemplate(ctx context.Context, key string, payload json.RawMessage) (*model.Template, error)
 	DeleteTemplate(ctx context.Context, key string) (bool, error)
@@ -520,6 +532,28 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Mutation.AddMicro(childComplexity, args["mesoKey"].(string)), true
+	case "Mutation.addSet":
+		if e.ComplexityRoot.Mutation.AddSet == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_addSet_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.AddSet(childComplexity, args["dayId"].(int), args["dayExerciseId"].(int), args["position"].(int)), true
+	case "Mutation.createExercise":
+		if e.ComplexityRoot.Mutation.CreateExercise == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createExercise_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.CreateExercise(childComplexity, args["payload"].(json.RawMessage)), true
 	case "Mutation.createMesocycle":
 		if e.ComplexityRoot.Mutation.CreateMesocycle == nil {
 			break
@@ -553,6 +587,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Mutation.DeleteDayExercise(childComplexity, args["dayId"].(int), args["dayExerciseId"].(int)), true
+	case "Mutation.deleteDayExercises":
+		if e.ComplexityRoot.Mutation.DeleteDayExercises == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_deleteDayExercises_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.DeleteDayExercises(childComplexity, args["mesoKey"].(string), args["dayExerciseIds"].([]int)), true
 	case "Mutation.deleteMesocycle":
 		if e.ComplexityRoot.Mutation.DeleteMesocycle == nil {
 			break
@@ -597,6 +642,28 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Mutation.RemoveMicro(childComplexity, args["mesoKey"].(string)), true
+	case "Mutation.reorderDayExercises":
+		if e.ComplexityRoot.Mutation.ReorderDayExercises == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_reorderDayExercises_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.ReorderDayExercises(childComplexity, args["dayId"].(int), args["order"].([]int), args["repeat"].(*bool)), true
+	case "Mutation.replaceDayExercise":
+		if e.ComplexityRoot.Mutation.ReplaceDayExercise == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_replaceDayExercise_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.ReplaceDayExercise(childComplexity, args["dayId"].(int), args["dayExerciseId"].(int), args["newExerciseId"].(int), args["repeat"].(*bool)), true
 	case "Mutation.setPriorities":
 		if e.ComplexityRoot.Mutation.SetPriorities == nil {
 			break
@@ -652,6 +719,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Mutation.UpdateDayLabel(childComplexity, args["dayId"].(int), args["label"].(string)), true
+	case "Mutation.updateExercise":
+		if e.ComplexityRoot.Mutation.UpdateExercise == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateExercise_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.UpdateExercise(childComplexity, args["id"].(int), args["payload"].(json.RawMessage)), true
 	case "Mutation.updateMesocycle":
 		if e.ComplexityRoot.Mutation.UpdateMesocycle == nil {
 			break
@@ -1373,6 +1451,50 @@ func (ec *executionContext) field_Mutation_addMicro_args(ctx context.Context, ra
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_addSet_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "dayId",
+		func(ctx context.Context, v any) (int, error) {
+			return ec.unmarshalNInt2int(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["dayId"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "dayExerciseId",
+		func(ctx context.Context, v any) (int, error) {
+			return ec.unmarshalNInt2int(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["dayExerciseId"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "position",
+		func(ctx context.Context, v any) (int, error) {
+			return ec.unmarshalNInt2int(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["position"] = arg2
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_createExercise_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "payload",
+		func(ctx context.Context, v any) (json.RawMessage, error) {
+			return ec.unmarshalNJSON2encodingᚋjsonᚐRawMessage(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["payload"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_createMesocycle_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -1420,6 +1542,28 @@ func (ec *executionContext) field_Mutation_deleteDayExercise_args(ctx context.Co
 		return nil, err
 	}
 	args["dayExerciseId"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_deleteDayExercises_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "mesoKey",
+		func(ctx context.Context, v any) (string, error) {
+			return ec.unmarshalNString2string(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["mesoKey"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "dayExerciseIds",
+		func(ctx context.Context, v any) ([]int, error) {
+			return ec.unmarshalNInt2ᚕintᚄ(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["dayExerciseIds"] = arg1
 	return args, nil
 }
 
@@ -1476,6 +1620,74 @@ func (ec *executionContext) field_Mutation_removeMicro_args(ctx context.Context,
 		return nil, err
 	}
 	args["mesoKey"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_reorderDayExercises_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "dayId",
+		func(ctx context.Context, v any) (int, error) {
+			return ec.unmarshalNInt2int(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["dayId"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "order",
+		func(ctx context.Context, v any) ([]int, error) {
+			return ec.unmarshalNInt2ᚕintᚄ(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["order"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "repeat",
+		func(ctx context.Context, v any) (*bool, error) {
+			return ec.unmarshalOBoolean2ᚖbool(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["repeat"] = arg2
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_replaceDayExercise_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "dayId",
+		func(ctx context.Context, v any) (int, error) {
+			return ec.unmarshalNInt2int(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["dayId"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "dayExerciseId",
+		func(ctx context.Context, v any) (int, error) {
+			return ec.unmarshalNInt2int(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["dayExerciseId"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "newExerciseId",
+		func(ctx context.Context, v any) (int, error) {
+			return ec.unmarshalNInt2int(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["newExerciseId"] = arg2
+	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "repeat",
+		func(ctx context.Context, v any) (*bool, error) {
+			return ec.unmarshalOBoolean2ᚖbool(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["repeat"] = arg3
 	return args, nil
 }
 
@@ -1586,6 +1798,28 @@ func (ec *executionContext) field_Mutation_updateDay_args(ctx context.Context, r
 		return nil, err
 	}
 	args["dayId"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "payload",
+		func(ctx context.Context, v any) (json.RawMessage, error) {
+			return ec.unmarshalNJSON2encodingᚋjsonᚐRawMessage(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["payload"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_updateExercise_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id",
+		func(ctx context.Context, v any) (int, error) {
+			return ec.unmarshalNInt2int(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
 	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "payload",
 		func(ctx context.Context, v any) (json.RawMessage, error) {
 			return ec.unmarshalNJSON2encodingᚋjsonᚐRawMessage(ctx, v)
@@ -3384,6 +3618,226 @@ func (ec *executionContext) fieldContext_Mutation_deleteDayExercise(ctx context.
 	return fc, nil
 }
 
+func (ec *executionContext) _Mutation_deleteDayExercises(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_deleteDayExercises(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().DeleteDayExercises(ctx, fc.Args["mesoKey"].(string), fc.Args["dayExerciseIds"].([]int))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_deleteDayExercises(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_deleteDayExercises_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_replaceDayExercise(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_replaceDayExercise(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().ReplaceDayExercise(ctx, fc.Args["dayId"].(int), fc.Args["dayExerciseId"].(int), fc.Args["newExerciseId"].(int), fc.Args["repeat"].(*bool))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v json.RawMessage) graphql.Marshaler {
+			return ec.marshalNJSON2encodingᚋjsonᚐRawMessage(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_replaceDayExercise(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type JSON does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_replaceDayExercise_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_reorderDayExercises(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_reorderDayExercises(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().ReorderDayExercises(ctx, fc.Args["dayId"].(int), fc.Args["order"].([]int), fc.Args["repeat"].(*bool))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v json.RawMessage) graphql.Marshaler {
+			return ec.marshalNJSON2encodingᚋjsonᚐRawMessage(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_reorderDayExercises(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type JSON does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_reorderDayExercises_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_createExercise(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_createExercise(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().CreateExercise(ctx, fc.Args["payload"].(json.RawMessage))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v json.RawMessage) graphql.Marshaler {
+			return ec.marshalNJSON2encodingᚋjsonᚐRawMessage(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_createExercise(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type JSON does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_createExercise_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_updateExercise(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_updateExercise(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().UpdateExercise(ctx, fc.Args["id"].(int), fc.Args["payload"].(json.RawMessage))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v json.RawMessage) graphql.Marshaler {
+			return ec.marshalNJSON2encodingᚋjsonᚐRawMessage(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_updateExercise(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type JSON does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_updateExercise_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Mutation_updateSet(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -3466,6 +3920,50 @@ func (ec *executionContext) fieldContext_Mutation_deleteSet(ctx context.Context,
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_deleteSet_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_addSet(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_addSet(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().AddSet(ctx, fc.Args["dayId"].(int), fc.Args["dayExerciseId"].(int), fc.Args["position"].(int))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v json.RawMessage) graphql.Marshaler {
+			return ec.marshalNJSON2encodingᚋjsonᚐRawMessage(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_addSet(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type JSON does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_addSet_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -5647,7 +6145,7 @@ func (ec *executionContext) unmarshalInputDayExerciseInput(ctx context.Context, 
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"exerciseId", "muscleGroupId", "position"}
+	fieldsInOrder := [...]string{"exerciseId", "muscleGroupId", "position", "repeat"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -5663,7 +6161,7 @@ func (ec *executionContext) unmarshalInputDayExerciseInput(ctx context.Context, 
 			it.ExerciseID = data
 		case "muscleGroupId":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("muscleGroupId"))
-			data, err := ec.unmarshalNInt2int(ctx, v)
+			data, err := ec.unmarshalOInt2ᚖint(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -5675,6 +6173,13 @@ func (ec *executionContext) unmarshalInputDayExerciseInput(ctx context.Context, 
 				return it, err
 			}
 			it.Position = data
+		case "repeat":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("repeat"))
+			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Repeat = data
 		}
 	}
 	return it, nil
@@ -6363,6 +6868,41 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "deleteDayExercises":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_deleteDayExercises(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "replaceDayExercise":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_replaceDayExercise(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "reorderDayExercises":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_reorderDayExercises(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createExercise":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_createExercise(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "updateExercise":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_updateExercise(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "updateSet":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_updateSet(ctx, field)
@@ -6373,6 +6913,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "deleteSet":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_deleteSet(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "addSet":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_addSet(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -7479,6 +8026,35 @@ func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.Selecti
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) unmarshalNInt2ᚕintᚄ(ctx context.Context, v any) ([]int, error) {
+	vSlice := graphql.CoerceList(v)
+	var err error
+	res := make([]int, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNInt2int(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalNInt2ᚕintᚄ(ctx context.Context, sel ast.SelectionSet, v []int) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalNInt2int(ctx, sel, v[i])
+	}
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
 }
 
 func (ec *executionContext) unmarshalNJSON2encodingᚋjsonᚐRawMessage(ctx context.Context, v any) (json.RawMessage, error) {

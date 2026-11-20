@@ -89,6 +89,19 @@ mutation {
 * Writes go to `training.rpstrength.com/api/...` (the app proxy), reads to
   `api.rpstrength.com`. The Python client this is ported from
   (`rp_api.py`) documents why.
+* `repeat: true` on `addExerciseToDay`, `replaceDayExercise` and
+  `reorderDayExercises` cascades the change to **every week** of the
+  mesocycle — the same as the app's "repeat for all weeks" toggle.
+* `replaceDayExercise` swaps a slot's exercise but **wipes that slot's
+  prescribed sets** — re-apply weights/reps afterwards (or re-check what RP
+  regenerates).
+* RP's write endpoints return the full mesocycle, not the edited entity, so
+  the new mutations (`replaceDayExercise`, `reorderDayExercises`, `addSet`,
+  `createExercise`, `updateExercise`) return raw `JSON!`. Decode downstream,
+  don't trust an entity-shaped response.
+* Sets carry no measured RIR from the client; RP stores only targets
+  (`weightTarget`, `repsTarget`, `rir`).
+
 * Write bodies are gzip-compressed. The priorities endpoint silently 500s
   on partial payloads — `setPriorities` fetches the current map and submits
   the merged full map server-side, the same trick the Python client uses.

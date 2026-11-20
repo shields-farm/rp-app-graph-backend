@@ -22,13 +22,18 @@ import (
 )
 
 const (
-	BaseURL    = "https://api.rpstrength.com"
-	AppBaseURL = "https://training.rpstrength.com/api"
 	// AppVersion is pinned the way rp_api.py pins it; RP accepts anything
 	// recent, but pinning avoids surprises if they gate.
 	AppVersion = "1.3.8"
 	// GqlgenMaxBody guards against pathological mutation payloads.
 	maxBody = 1 << 20
+)
+
+// Base URLs are vars (not consts) so tests can point the client at a stub
+// server; production code paths always use these defaults.
+var (
+	BaseURL    = "https://api.rpstrength.com"
+	AppBaseURL = "https://training.rpstrength.com/api"
 )
 
 // Client is a thin wrapper over net/http with the RP conventions baked in.
@@ -384,14 +389,81 @@ func (c *Client) ExerciseHistory(ctx context.Context, exerciseID int) (json.RawM
 	return raw, err
 }
 
-func (c *Client) AddExerciseToDay(ctx context.Context, dayID, exerciseID, muscleGroupID, position int) (json.RawMessage, error) {
+// CreateExercise creates a custom exercise (e.g. "Band-Assisted Pullup").
+// RP's create response shape varies; treat as raw JSON.
+func (c *Client) CreateExercise(ctx context.Context, payload json.RawMessage) (json.RawMessage, error) {
+	var raw json.RawMessage
+	path, err := c.userPath("/exercises")
+	if err != nil {
+		return nil, err
+	}
+	err = c.do(ctx, http.MethodPost, path, payload, &raw)
+	return raw, err
+}
+
+// UpdateExercise updates an exercise (e.g. flipping exerciseType to
+// machine-assistance). Payload is passed through to RP verbatim.
+func (c *Client) UpdateExercise(ctx context.Context, exerciseID int, payload json.RawMessage) (json.RawMessage, error) {
+	var raw json.RawMessage
+	path, err := c.userPath("/exercises/%d", exerciseID)
+	if err != nil {
+		return nil, err
+	}
+	err = c.do(ctx, http.MethodPut, path, payload, &raw)
+	return raw, err
+}
+
+// AddExerciseToDay adds an exercise to a day. muscleGroupID and position are
+// optional — omit to let RP decide. repeat=true cascades the add to every
+// week of the mesocycle (the "repeat across weeks" toggle in the app).
+func (c *Client) AddExerciseToDay(ctx context.Context, dayID, exerciseID int, muscleGroupID *int, position *int, repeat bool) (json.RawMessage, error) {
 	var raw json.RawMessage
 	path, err := c.userPath("/days/%d/exercises", dayID)
 	if err != nil {
 		return nil, err
 	}
-	body := map[string]any{"exerciseId": exerciseID, "muscleGroupId": muscleGroupID, "position": position}
+	body := map[string]any{"exerciseId": exerciseID}
+	if muscleGroupID != nil {
+		body["muscleGroupId"] = *muscleGroupID
+	}
+	if position != nil {
+		body["position"] = *position
+	}
+	if repeat {
+		body["repeat"] = true
+	}
 	err = c.do(ctx, http.MethodPost, path, body, &raw)
+	return raw, err
+}
+
+// ReplaceDayExercise swaps the exercise on an existing day slot in place.
+// Note: upstream wipes the slot's prescribed sets when the exercise changes.
+// repeat=true cascades to every week of the mesocycle.
+func (c *Client) ReplaceDayExercise(ctx context.Context, dayID, dayExerciseID, newExerciseID int, repeat bool) (json.RawMessage, error) {
+	var raw json.RawMessage
+	path, err := c.userPath("/days/%d/exercises/%d", dayID, dayExerciseID)
+	if err != nil {
+		return nil, err
+	}
+	err = c.do(ctx, http.MethodPut, path, map[string]any{
+		"newExerciseId": newExerciseID,
+		"repeat":        repeat,
+	}, &raw)
+	return raw, err
+}
+
+// ReorderDayExercises sets the exercise order on a day. repeat=true cascades
+// the same order to every week of the mesocycle.
+func (c *Client) ReorderDayExercises(ctx context.Context, dayID int, order []int, repeat bool) (json.RawMessage, error) {
+	var raw json.RawMessage
+	path, err := c.userPath("/days/%d/exercises/order", dayID)
+	if err != nil {
+		return nil, err
+	}
+	err = c.do(ctx, http.MethodPut, path, map[string]any{
+		"order":  order,
+		"repeat": repeat,
+	}, &raw)
 	return raw, err
 }
 
@@ -405,15 +477,41 @@ func (c *Client) UpdateDayExercise(ctx context.Context, dayID, dayExerciseID int
 	return raw, err
 }
 
-func (c *Client) DeleteDayExercise(ctx context.Context, dayID, dayExerciseID int) error {
-	path, err := c.userPath("/days/%d/exercises/%d", dayID, dayExerciseID)
+// DeleteDayExercises removes one or more day exercises from a mesocycle.
+// RP has no DELETE route on the day-exercise resource (it 404s); the real
+// endpoint is a POST to the mesocycle with a list of dayExerciseIds.
+func (c *Client) DeleteDayExercises(ctx context.Context, mesoKey string, dayExerciseIDs []int) error {
+	if len(dayExerciseIDs) == 0 {
+		return errors.New("dayExerciseIds must not be empty")
+	}
+	path, err := c.userPath("/mesocycles/%s/day-exercises/delete", mesoKey)
 	if err != nil {
 		return err
 	}
-	return c.do(ctx, http.MethodDelete, path, nil, nil)
+	var raw json.RawMessage
+	return c.do(ctx, http.MethodPost, path, map[string]any{"dayExerciseIds": dayExerciseIDs}, &raw)
+}
+
+// DeleteDayExercise is retained for API compatibility but cannot work: RP
+// removed the DELETE route. Callers must supply the mesocycle key, which this
+// signature cannot carry — use DeleteDayExercises instead.
+func (c *Client) DeleteDayExercise(ctx context.Context, dayID, dayExerciseID int) error {
+	return fmt.Errorf("RP has no DELETE route for day exercises (dayId=%d, dayExerciseId=%d); use deleteDayExercises(mesoKey, dayExerciseIds) instead", dayID, dayExerciseID)
 }
 
 // ─── Sets ───────────────────────────────────────────────────────────────────
+
+// AddSet appends a set to a day-exercise. RP requires an explicit position.
+// Like the other write endpoints, the response is the full mesocycle.
+func (c *Client) AddSet(ctx context.Context, dayID, dayExerciseID, position int) (json.RawMessage, error) {
+	var raw json.RawMessage
+	path, err := c.userPath("/days/%d/exercises/%d/sets", dayID, dayExerciseID)
+	if err != nil {
+		return nil, err
+	}
+	err = c.do(ctx, http.MethodPost, path, map[string]any{"position": position}, &raw)
+	return raw, err
+}
 
 func (c *Client) UpdateSet(ctx context.Context, setID int, payload json.RawMessage) (json.RawMessage, error) {
 	var raw json.RawMessage
@@ -559,5 +657,6 @@ type MesocycleSummary struct {
 	Status     string     `json:"status"`
 	CreatedAt  *time.Time `json:"createdAt"`
 	FinishedAt *time.Time `json:"finishedAt"`
-	WeekCount  *int       `json:"weekCount"`
+	// RP calls this "weeks" (not weekCount) in the list payload.
+	WeekCount *int `json:"weeks"`
 }

@@ -160,11 +160,7 @@ func (r *mutationResolver) AddExerciseToDay(ctx context.Context, dayID int, exer
 	if err != nil {
 		return nil, err
 	}
-	pos := 0
-	if exercise.Position != nil {
-		pos = *exercise.Position
-	}
-	raw, err := c.AddExerciseToDay(ctx, dayID, exercise.ExerciseID, exercise.MuscleGroupID, pos)
+	raw, err := c.AddExerciseToDay(ctx, dayID, exercise.ExerciseID, exercise.MuscleGroupID, exercise.Position, boolOr(exercise.Repeat, false))
 	if err != nil {
 		return nil, errToGraphQL(err)
 	}
@@ -194,6 +190,70 @@ func (r *mutationResolver) DeleteDayExercise(ctx context.Context, dayID int, day
 		return false, errToGraphQL(err)
 	}
 	return true, nil
+}
+
+// DeleteDayExercises is the resolver for the deleteDayExercises field.
+func (r *mutationResolver) DeleteDayExercises(ctx context.Context, mesoKey string, dayExerciseIds []int) (bool, error) {
+	c, err := r.client(ctx)
+	if err != nil {
+		return false, err
+	}
+	if err := c.DeleteDayExercises(ctx, mesoKey, dayExerciseIds); err != nil {
+		return false, errToGraphQL(err)
+	}
+	return true, nil
+}
+
+// ReplaceDayExercise is the resolver for the replaceDayExercise field.
+func (r *mutationResolver) ReplaceDayExercise(ctx context.Context, dayID int, dayExerciseID int, newExerciseID int, repeat *bool) (json.RawMessage, error) {
+	c, err := r.client(ctx)
+	if err != nil {
+		return nil, err
+	}
+	raw, err := c.ReplaceDayExercise(ctx, dayID, dayExerciseID, newExerciseID, boolOr(repeat, true))
+	if err != nil {
+		return nil, errToGraphQL(err)
+	}
+	return raw, nil
+}
+
+// ReorderDayExercises is the resolver for the reorderDayExercises field.
+func (r *mutationResolver) ReorderDayExercises(ctx context.Context, dayID int, order []int, repeat *bool) (json.RawMessage, error) {
+	c, err := r.client(ctx)
+	if err != nil {
+		return nil, err
+	}
+	raw, err := c.ReorderDayExercises(ctx, dayID, order, boolOr(repeat, true))
+	if err != nil {
+		return nil, errToGraphQL(err)
+	}
+	return raw, nil
+}
+
+// CreateExercise is the resolver for the createExercise field.
+func (r *mutationResolver) CreateExercise(ctx context.Context, payload json.RawMessage) (json.RawMessage, error) {
+	c, err := r.client(ctx)
+	if err != nil {
+		return nil, err
+	}
+	raw, err := c.CreateExercise(ctx, payload)
+	if err != nil {
+		return nil, errToGraphQL(err)
+	}
+	return raw, nil
+}
+
+// UpdateExercise is the resolver for the updateExercise field.
+func (r *mutationResolver) UpdateExercise(ctx context.Context, id int, payload json.RawMessage) (json.RawMessage, error) {
+	c, err := r.client(ctx)
+	if err != nil {
+		return nil, err
+	}
+	raw, err := c.UpdateExercise(ctx, id, payload)
+	if err != nil {
+		return nil, errToGraphQL(err)
+	}
+	return raw, nil
 }
 
 // UpdateSet is the resolver for the updateSet field.
@@ -257,6 +317,19 @@ func (r *mutationResolver) DeleteSet(ctx context.Context, setID int) (bool, erro
 		return false, errToGraphQL(err)
 	}
 	return true, nil
+}
+
+// AddSet is the resolver for the addSet field.
+func (r *mutationResolver) AddSet(ctx context.Context, dayID int, dayExerciseID int, position int) (json.RawMessage, error) {
+	c, err := r.client(ctx)
+	if err != nil {
+		return nil, err
+	}
+	raw, err := c.AddSet(ctx, dayID, dayExerciseID, position)
+	if err != nil {
+		return nil, errToGraphQL(err)
+	}
+	return raw, nil
 }
 
 // CreateTemplate is the resolver for the createTemplate field.

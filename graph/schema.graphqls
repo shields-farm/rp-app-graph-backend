@@ -168,8 +168,11 @@ input SetUpdateInput {
 
 input DayExerciseInput {
   exerciseId: Int!
-  muscleGroupId: Int!
+  """Optional. RP accepts the add without it; omit to let the app decide muscle group."""
+  muscleGroupId: Int
   position: Int
+  """Cascade the add to every week of the mesocycle."""
+  repeat: Boolean
 }
 
 type Mutation {
@@ -198,12 +201,39 @@ type Mutation {
 
   """Exercise-level edits within a day."""
   addExerciseToDay(dayId: Int!, exercise: DayExerciseInput!): DayExercise!
+  """Pass-through to PUT days/:dayId/exercises/:dayExerciseId. Accepts
+  {"newExerciseId": N, "repeat": true} to swap the exercise across all weeks.
+  Prefer replaceDayExercise for that — this one stays for raw passthrough."""
   updateDayExercise(dayId: Int!, dayExerciseId: Int!, payload: JSON!): DayExercise!
+  """NOT SUPPORTED upstream — RP removed the DELETE route on day exercises.
+  Kept only for compatibility; it returns an explanatory error. Use
+  deleteDayExercises instead."""
   deleteDayExercise(dayId: Int!, dayExerciseId: Int!): Boolean!
+  """Remove one or more exercises from a mesocycle (all weeks are separate
+  dayExercise ids — pass every week's id to remove it everywhere).
+  Upstream path: POST /mesocycles/:key/day-exercises/delete."""
+  deleteDayExercises(mesoKey: String!, dayExerciseIds: [Int!]!): Boolean!
+  """Swap the exercise on an existing day slot. repeat=true cascades the swap
+  to every week of the mesocycle. NOTE: RP wipes the slot's prescribed sets.
+  Returns the raw upstream payload (the full mesocycle)."""
+  replaceDayExercise(dayId: Int!, dayExerciseId: Int!, newExerciseId: Int!, repeat: Boolean = true): JSON!
+  """Set the exercise order on a day. repeat=true cascades the same order to
+  every week of the mesocycle. Returns the raw upstream payload (mesocycle)."""
+  reorderDayExercises(dayId: Int!, order: [Int!]!, repeat: Boolean = true): JSON!
+  """Create a custom exercise (e.g. Band-Assisted Pullup). Payload is
+  RP's create-exercise body, passed through verbatim. Response shape varies
+  across RP versions, hence raw JSON."""
+  createExercise(payload: JSON!): JSON!
+  """Update an exercise — e.g. set exerciseType to machine-assistance.
+  Payload is passed through verbatim."""
+  updateExercise(id: Int!, payload: JSON!): JSON!
 
   """Set-level edits."""
   updateSet(setId: Int!, changes: SetUpdateInput!): Set!
   deleteSet(setId: Int!): Boolean!
+  """Append a set to a day exercise. Mirrors RP's requirement that position is
+  explicit. Returns the raw upstream payload (the mesocycle)."""
+  addSet(dayId: Int!, dayExerciseId: Int!, position: Int!): JSON!
 
   """Template CRUD."""
   createTemplate(payload: JSON!): Template!

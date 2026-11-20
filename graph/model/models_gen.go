@@ -28,9 +28,12 @@ type DayExercise struct {
 }
 
 type DayExerciseInput struct {
-	ExerciseID    int  `json:"exerciseId"`
-	MuscleGroupID int  `json:"muscleGroupId"`
+	ExerciseID int `json:"exerciseId"`
+	// Optional. RP accepts the add without it; omit to let the app decide muscle group.
+	MuscleGroupID *int `json:"muscleGroupId,omitempty"`
 	Position      *int `json:"position,omitempty"`
+	// Cascade the add to every week of the mesocycle.
+	Repeat *bool `json:"repeat,omitempty"`
 }
 
 type Exercise struct {
