@@ -23,8 +23,9 @@ import (
 
 const (
 	// AppVersion is pinned the way rp_api.py pins it; RP accepts anything
-	// recent, but pinning avoids surprises if they gate.
-	AppVersion = "1.3.8"
+	// recent, but pinning avoids surprises if they gate. Keep in sync with
+	// the shipped web client (grep Xle= in the training.rpstrength.com bundle).
+	AppVersion = "1.3.65"
 	// GqlgenMaxBody guards against pathological mutation payloads.
 	maxBody = 1 << 20
 )
@@ -171,7 +172,11 @@ func (c *Client) do(ctx context.Context, method, path string, body any, result a
 
 func (c *Client) ListMesocycles(ctx context.Context) ([]MesocycleSummary, error) {
 	var out []MesocycleSummary
-	if err := c.do(ctx, http.MethodGet, "/training/mesocycles", nil, &out); err != nil {
+	path, err := c.userPath("/mesocycles")
+	if err != nil {
+		return nil, err
+	}
+	if err := c.do(ctx, http.MethodGet, path, nil, &out); err != nil {
 		return nil, err
 	}
 	return out, nil
@@ -179,7 +184,11 @@ func (c *Client) ListMesocycles(ctx context.Context) ([]MesocycleSummary, error)
 
 func (c *Client) GetMesocycle(ctx context.Context, key string) (json.RawMessage, error) {
 	var raw json.RawMessage
-	if err := c.do(ctx, http.MethodGet, "/training/mesocycles/"+key, nil, &raw); err != nil {
+	path, err := c.userPath("/mesocycles/%s", key)
+	if err != nil {
+		return nil, err
+	}
+	if err := c.do(ctx, http.MethodGet, path, nil, &raw); err != nil {
 		return nil, err
 	}
 	return raw, nil
@@ -379,13 +388,21 @@ func (c *Client) AddDayNote(ctx context.Context, dayID int, text string) (json.R
 
 func (c *Client) ListExercises(ctx context.Context) (json.RawMessage, error) {
 	var raw json.RawMessage
-	err := c.do(ctx, http.MethodGet, "/training/exercises", nil, &raw)
+	path, err := c.userPath("/exercises")
+	if err != nil {
+		return nil, err
+	}
+	err = c.do(ctx, http.MethodGet, path, nil, &raw)
 	return raw, err
 }
 
 func (c *Client) ExerciseHistory(ctx context.Context, exerciseID int) (json.RawMessage, error) {
 	var raw json.RawMessage
-	err := c.do(ctx, http.MethodGet, fmt.Sprintf("/training/exercises/%d/history", exerciseID), nil, &raw)
+	path, err := c.userPath("/exercises/%d/history", exerciseID)
+	if err != nil {
+		return nil, err
+	}
+	err = c.do(ctx, http.MethodGet, path, nil, &raw)
 	return raw, err
 }
 
@@ -585,19 +602,31 @@ func (c *Client) DeleteTemplate(ctx context.Context, key string) error {
 
 func (c *Client) UserAttributes(ctx context.Context) (json.RawMessage, error) {
 	var raw json.RawMessage
-	err := c.do(ctx, http.MethodGet, "/training/user-attributes", nil, &raw)
+	path, err := c.userPath("/user-attributes")
+	if err != nil {
+		return nil, err
+	}
+	err = c.do(ctx, http.MethodGet, path, nil, &raw)
 	return raw, err
 }
 
 func (c *Client) UserExerciseHistory(ctx context.Context) (json.RawMessage, error) {
 	var raw json.RawMessage
-	err := c.do(ctx, http.MethodGet, "/training/user-exercise-history", nil, &raw)
+	path, err := c.userPath("/user-exercise-history")
+	if err != nil {
+		return nil, err
+	}
+	err = c.do(ctx, http.MethodGet, path, nil, &raw)
 	return raw, err
 }
 
 func (c *Client) Bootstrap(ctx context.Context) (json.RawMessage, error) {
 	var raw json.RawMessage
-	err := c.do(ctx, http.MethodGet, "/training/bootstrap", nil, &raw)
+	path, err := c.userPath("/bootstrap")
+	if err != nil {
+		return nil, err
+	}
+	err = c.do(ctx, http.MethodGet, path, nil, &raw)
 	return raw, err
 }
 
